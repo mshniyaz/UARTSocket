@@ -32,6 +32,7 @@ async def clientConnect():
                     # Replace DEL character with a backspace string
                     if ord(char) == 127:
                         char = "\b \b"
+                    # Print all characters received from the server
                     print(f"{char}", end="", flush=True)
 
         async def writeToServer():
@@ -39,7 +40,7 @@ async def clientConnect():
             if os.name == 'nt':
                 def readChar():
                     return msvcrt.getch().decode()
-            # UNIX based systems
+            # Equivalent method for UNIX based systems
             else:
                 def readChar():
                     fd = sys.stdin.fileno() # File descriptor for stdin
@@ -50,13 +51,12 @@ async def clientConnect():
                     finally:
                         termios.tcsetattr(fd, termios.TCSADRAIN, oldSettings)  # Restore old settings
 
-            # Read input character asynchronously and send to server
+            # Await input character on different thread and send to server
             loop = asyncio.get_running_loop()
             while True:
                 char = await loop.run_in_executor(None, readChar)
                 if char:
                     await websocket.send(char)
-                await asyncio.sleep(0.05)
 
         # Start read and write tasks
         readTask = asyncio.create_task(readFromServer())

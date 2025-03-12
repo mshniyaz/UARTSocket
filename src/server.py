@@ -9,7 +9,7 @@ async def startServer():
     Start the WebSocket server on the host.
     """
     async with serve(handleWebsocketConnect, WEBSOCKET_HOST, WEBSOCKET_PORT) as server:
-        print("Started websocket server")
+        print("Started websocket server, connect to server on a client by selecting option 2")
         await server.serve_forever()
 
 async def handleWebsocketConnect(websocket):
@@ -43,7 +43,7 @@ async def handleWebsocketConnect(websocket):
             except:
                 print("[CLIENT] Error reading from UART")
             # Below await seriously slows down reading from UART
-            # await asyncio.sleep(0.001)
+            await asyncio.sleep(0.001)
 
     # Write data from websocket into UART
     async def writeToUART():
