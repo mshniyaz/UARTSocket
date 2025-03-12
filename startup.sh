@@ -1,3 +1,10 @@
 DIR="$( cd "$( dirname "$0" )" && pwd )"
-source $DIR/venv/bin/activate
-python3 "$DIR/main.py" "$@"
+
+# Enable virtualenv if available
+if [ -d "$DIR/venv/bin" ]; then
+    source $DIR/venv/bin/activate
+elif [ -d "$DIR/env/bin" ]; then
+    source $DIR/env/bin/activate
+fi
+
+python3 "$DIR/src/main.py" "$@"
