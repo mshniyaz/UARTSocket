@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Get current dir
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 # Enable virtualenv if available
@@ -10,6 +12,11 @@ elif [ -d "$DIR/venv/Scripts" ]; then
     source "$DIR/venv/Scripts/activate"
 elif [ -d "$DIR/env/Scripts" ]; then
     source "$DIR/env/Scripts/activate"
+fi
+
+# Install dependencies into the venv
+if [ -f "$DIR/requirements.txt" ]; then
+    pip install -r "$DIR/requirements.txt"
 fi
 
 # Determine null device (to dump python -v output into)
