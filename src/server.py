@@ -1,9 +1,9 @@
 import asyncio
 import serial
-from websockets import serve
+import websockets
 from urllib.parse import parse_qs # Used to parse data passed from client to server
 import ssl, pathlib # Used to encrypt connections with T
-from config import WEBSOCKET_HOST, WEBSOCKET_PORT
+from configs import WEBSOCKET_HOST, WEBSOCKET_PORT, UART_READ_DELAY
 
 # All communications should be encrypted via WSS (https://websockets.readthedocs.io/en/stable/howto/encryption.html)
 sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -14,8 +14,8 @@ async def startServer():
     """
     Start the WebSocket server on the host.
     """
-    async with serve(handleWebsocketConnect, WEBSOCKET_HOST, WEBSOCKET_PORT, ssl=sslContext) as server:
-        print("Started websocket server, connect to server on a client by selecting option 2")
+    async with websockets.serve(handleWebsocketConnect, WEBSOCKET_HOST, WEBSOCKET_PORT, ssl=sslContext) as server:
+        print("Started websocket server.")
         await server.serve_forever()
 
 async def handleWebsocketConnect(websocket):
@@ -29,13 +29,12 @@ async def handleWebsocketConnect(websocket):
     baudRate = int(params['baudrate'])
 
     try:
-        print("Updating UART port")
         ser = serial.Serial(uartPort, baudRate, timeout=0)
         print(f"[CLIENT] Opened UART port {uartPort} at {baudRate} baudrate")
     except Exception as e:
-        print(f"[CLIENT] Failed to open UART port {uartPort}: {e}")
+        print(f"[CLIENT] Failed to open UART port {uartPort}")
         await websocket.close()
-        return
+        return # sys.exit here?
 
     # Read data from websocket into uart
     async def readFromUART():
@@ -48,8 +47,8 @@ async def handleWebsocketConnect(websocket):
                     await websocket.send(char)
             except:
                 print("[CLIENT] Error reading from UART")
-            # Below await seriously slows down reading from UART
-            await asyncio.sleep(0.001)
+            # Length of await determines CPU usage and UART speed
+            await asyncio.sleep(UART_READ_DELAY)
 
     # Write data from websocket into UART
     async def writeToUART():
@@ -61,6 +60,18 @@ async def handleWebsocketConnect(websocket):
     writeTask = asyncio.create_task(writeToUART())
     try:
         await asyncio.gather(readTask, writeTask)
+    except websockets.exceptions.ConnectionClosedError as e:
+        print(f"[CLIENT] Connection closed")
+    except Exception as w:
+        print(f"Unexpected error: {e}")
     finally:
+        # Cleanup
         ser.close()
         await websocket.close()
+
+if __name__ == "__main__":
+    print("----------------")
+    print("Remote UART host")
+    print("----------------")
+    # Start the server
+    asyncio.run(startServer())

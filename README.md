@@ -14,7 +14,7 @@ This project provides a method to pipe UART data over the web using WebSockets. 
 
 ## Setup
 
-## Setup
+### For hosts
 
 1. Navigate to the project directory:
     ```sh
@@ -38,32 +38,36 @@ This project provides a method to pipe UART data over the web using WebSockets. 
     openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout ./src/keys/key.pem -out ./src/keys/cert.pem -subj "/CN=localhost" -addext "subjectAltName=IP:127.0.0.1, IP:<your-ip>"
     ```
 
+5. Share the public key `cert.pem` with clients 
+
+### For clients
+
+Store the `cert.pem` file given by the host in src/keys/ (NOTE: This is inconvenient and there should be a method to fix it) 
+
 ## Usage
 
 ### Starting the WebSocket Server
 
-1. Run the `main.py` script and select the option to start the WebSocket server:
-    ```sh
-    python src/main.py
-    ```
-2. Select option `1` to start the WebSocket server.
-3. Note down the IP address of the host machine (instructions in setup)
+Run the below command, follow the instructions to :
+```sh
+python src/server.py -h
+```
 
 ### Connecting as a Client
 
-1. Run the `main.py` script and select the option to connect as a client:
+1. Run the below command:
     ```sh
-    python src/main.py
+    python src/client.py -h
     ```
-2. Select option `2` to connect as a client.
-3. Enter the server address, UART port path, and baud rate when prompted.
+
+2. Read its output to connect to the correct device and serial port. For example:
+    ```sh
+    # Connect to IP 20.17.138.90, read serial device /tty/USB0 at baud of 2 Mb/s
+    python src/client.py 20.17.138.90 /tty/USB0 -b 2000000 
+    ```
 
 **NOTE**: If serial communication programs like minicom are listening to the serial device on the host, clients will be unable to intercept the UART data. 
 
 ## Configuration
 
-The WebSocket server configuration is stored in `src/config.py`, port and host IP can be changed accordingly:
-```python
-WEBSOCKET_HOST = '0.0.0.0'  # Bind to all network interfaces for remote access
-WEBSOCKET_PORT = 8765
-```
+The WebSocket server configuration is stored in `src/config.py`, port and host IP can be changed accordingly.

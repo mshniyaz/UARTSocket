@@ -1,7 +1,8 @@
-import asyncio, sys, os
-from websockets import connect
+import asyncio
+import  sys, os, argparse
+import websockets
 import ssl, pathlib # Used to encrypt connections with TLS
-from config import WEBSOCKET_PORT
+from configs import WEBSOCKET_PORT
 
 # Platform dependent disabling of terminal echo
 import os
@@ -16,20 +17,14 @@ sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 keysDir = pathlib.Path(__file__).resolve().parent / 'keys'
 sslContext.load_verify_locations(cafile=keysDir / 'cert.pem')
 
-async def clientConnect():
-    # Let users configure their connection
-    remoteHost = input("Enter the server address (e.g., 192.168.1.100): ").strip()
-    uartPort = input("Enter the path to serial port (e.g., /dev/ttyUSB0): ").strip()
-    uartBaudrate = None
-    while not uartBaudrate:
-        try:
-            uartBaudrate = int(input("Enter the baud rate (e.g., 115200): ").strip())
-        except ValueError:
-            print("Invalid baud rate. Please enter an integer")
-    hostURI = f"wss://{remoteHost}:{WEBSOCKET_PORT}/uartPort={uartPort}&baudrate={uartBaudrate}"
-
+async def clientConnect(ipAddress, serialPort, baudRate):
+    """
+    Entrypoint for clients, connect to the host to send/receive UART data.
+    """
     # Connect to the WebSocket server given
-    async with connect(hostURI, ssl=sslContext) as websocket:
+    hostURI = f"wss://{ipAddress}:{WEBSOCKET_PORT}/uartPort={serialPort}&baudrate={baudRate}"
+    try:
+        websocket = await websockets.connect(hostURI, ssl=sslContext)
         print(f"Connected to {hostURI}. Type to send data, Ctrl+C to exit.")
 
         async def readFromServer():
@@ -68,3 +63,28 @@ async def clientConnect():
         readTask = asyncio.create_task(readFromServer())
         writeTask = asyncio.create_task(writeToServer())
         await asyncio.gather(readTask, writeTask)
+    except (websockets.exceptions.InvalidURI, websockets.exceptions.InvalidHandshake) as e:
+        print(f"Failed to connect to {hostURI}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+    finally:
+        await websocket.close()
+        sys.exit("Websocket connection closed")
+        
+
+if __name__ == "__main__":
+    print("------------------")
+    print("Remote UART client")
+    print("------------------")
+    
+    # Parse CLI inputs
+    parser = argparse.ArgumentParser(description="WebSocket client to access serial devices")
+    # Required arguments
+    parser.add_argument("ip_address", help="IP address of the host computer to connect to")
+    parser.add_argument("serial_port", help="Path to the serial port on the host (e.g., /dev/ttyUSB0 or COM3)")
+    # Optional baud rate argument with short and long options
+    parser.add_argument("-b", "--baud", type=int, default=115200, help="Baud rate for the serial connection (default: 115200)")
+    args = parser.parse_args()
+
+    # Begin connecting the client
+    asyncio.run(clientConnect(args.ip_address, args.serial_port, args.baud))

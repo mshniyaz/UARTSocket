@@ -23,8 +23,3 @@ while true; do
     echo -e "$TIME_PASSED seconds have passed\r" > $PTY2
     sleep 3
 done &
-
-# Cleanup and run the startup script
-rm "/tmp/socat_output.txt"
-DIR="$( cd "$( dirname "$0" )" && pwd )"
-$DIR/startup.sh
