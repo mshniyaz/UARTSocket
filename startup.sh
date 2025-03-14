@@ -3,7 +3,7 @@
 # Get current dir
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
-# Enable virtualenv if available
+# Enable virtualenv if available (Both Windows & UNIX)
 if [ -d "$DIR/venv/bin" ]; then
     source "$DIR/venv/bin/activate"
 elif [ -d "$DIR/env/bin" ]; then

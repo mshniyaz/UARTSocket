@@ -12,13 +12,31 @@ This project provides a method to pipe UART data over the web using WebSockets. 
   - `websockets`
   - `pyserial`
 
-## Installation
+## Setup
 
-1. Clone the repository and cd into it
-2. Install the required dependencies
-   ```sh
-   pip install -r requirements.txt
-   ```
+## Setup
+
+1. Navigate to the project directory:
+    ```sh
+    cd /home/niyaz/Desktop/UARTSocket
+    ```
+
+2. Install the required Python libraries:
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+3. Find the current IP address:
+    ```sh
+    hostname -I # UNIX based systems
+    ipconfig # For Windows, check output for IPv4 address
+    ```
+
+4. Generate keys for use in WSS protocol with the below command, which stores the keys in `./src/keys`. Replace `<your-ip>` with your IP address:
+    ```sh
+    mkdir -p ./src/keys
+    openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout ./src/keys/key.pem -out ./src/keys/cert.pem -subj "/CN=localhost" -addext "subjectAltName=IP:127.0.0.1, IP:<your-ip>"
+    ```
 
 ## Usage
 
@@ -29,11 +47,7 @@ This project provides a method to pipe UART data over the web using WebSockets. 
     python src/main.py
     ```
 2. Select option `1` to start the WebSocket server.
-3. Note down the hostname of the current machine
-   ```sh
-   hostname -I # For UNIX based systems
-   ipconfig # For Windows, check output for IPv4 address
-   ```
+3. Note down the IP address of the host machine (instructions in setup)
 
 ### Connecting as a Client
 
@@ -43,6 +57,8 @@ This project provides a method to pipe UART data over the web using WebSockets. 
     ```
 2. Select option `2` to connect as a client.
 3. Enter the server address, UART port path, and baud rate when prompted.
+
+**NOTE**: If serial communication programs like minicom are listening to the serial device on the host, clients will be unable to intercept the UART data. 
 
 ## Configuration
 

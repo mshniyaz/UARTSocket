@@ -1,14 +1,20 @@
 import asyncio
 import serial
 from websockets import serve
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs # Used to parse data passed from client to server
+import ssl, pathlib # Used to encrypt connections with T
 from config import WEBSOCKET_HOST, WEBSOCKET_PORT
+
+# All communications should be encrypted via WSS (https://websockets.readthedocs.io/en/stable/howto/encryption.html)
+sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+keysDir = pathlib.Path(__file__).resolve().parent / 'keys'
+sslContext.load_cert_chain(certfile=keysDir / 'cert.pem', keyfile=keysDir / 'key.pem')
 
 async def startServer():
     """
     Start the WebSocket server on the host.
     """
-    async with serve(handleWebsocketConnect, WEBSOCKET_HOST, WEBSOCKET_PORT) as server:
+    async with serve(handleWebsocketConnect, WEBSOCKET_HOST, WEBSOCKET_PORT, ssl=sslContext) as server:
         print("Started websocket server, connect to server on a client by selecting option 2")
         await server.serve_forever()
 

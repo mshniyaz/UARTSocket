@@ -1,5 +1,6 @@
 import asyncio, sys, os
 from websockets import connect
+import ssl, pathlib # Used to encrypt connections with TLS
 from config import WEBSOCKET_PORT
 
 # Platform dependent disabling of terminal echo
@@ -9,6 +10,11 @@ if os.name == 'nt':  # Windows
 else:  # Unix-based (Linux, macOS)
     import tty
     import termios
+
+# Encrypt all communications via WSS
+sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+keysDir = pathlib.Path(__file__).resolve().parent / 'keys'
+sslContext.load_verify_locations(cafile=keysDir / 'cert.pem')
 
 async def clientConnect():
     # Let users configure their connection
@@ -20,10 +26,10 @@ async def clientConnect():
             uartBaudrate = int(input("Enter the baud rate (e.g., 115200): ").strip())
         except ValueError:
             print("Invalid baud rate. Please enter an integer")
-    hostURI = f"ws://{remoteHost}:{WEBSOCKET_PORT}/uartPort={uartPort}&baudrate={uartBaudrate}"
+    hostURI = f"wss://{remoteHost}:{WEBSOCKET_PORT}/uartPort={uartPort}&baudrate={uartBaudrate}"
 
     # Connect to the WebSocket server given
-    async with connect(hostURI) as websocket:
+    async with connect(hostURI, ssl=sslContext) as websocket:
         print(f"Connected to {hostURI}. Type to send data, Ctrl+C to exit.")
 
         async def readFromServer():
