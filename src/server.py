@@ -31,7 +31,6 @@ async def handleWebsocketConnect(websocket: websockets.ClientConnection):
     """
     Handle the beginning of a websocket connection.
     """
-
     # Parse the path to extract the UART port and baudrate
     def parsePath(socketPath):
         params = parse_qs(socketPath.lstrip("/").lstrip("?"))
@@ -61,6 +60,7 @@ async def handleWebsocketConnect(websocket: websockets.ClientConnection):
         print(f"[{clientID}] Opened UART port {uartPort} at {baudRate} baudrate")
     except Exception as e:
         print(f"[{clientID}] Failed to open UART port {uartPort}")
+        await websocket.send(f"Failed to open UART port {uartPort}\r\n".encode())
         await websocket.close()
         return
 

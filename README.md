@@ -1,71 +1,72 @@
 # WebSocket UART
 
-This project provides a method to pipe UART data over the web using WebSockets. The host PC connects to a UART port, creates a WebSocket server to serve the UART data over the network, and allows a client PC to access and interact with it as if it is being viewed from serial communication programs like minicom.
-
-`TODO: Connection is currently not secure, need to switch to wss protocol?`
+This project provides a method to transmit UART data over the web using WebSockets. The host PC connects to a UART port, creates a WebSocket server to serve the UART data over the network, and allows a client PC to access and interact with it as if using serial communication programs like minicom.
 
 ## Requirements
 
-- Python version `3.10.12` (Other python versions have not been tested) and `pip`
-- Python libraries in requirements.txt
+- Python version `3.10.12` (Other Python versions have not been tested) and `pip`
+- Python libraries listed in `requirements.txt`:
   - `asyncio`
   - `websockets`
   - `pyserial`
+  - All other dependencies are part of python's stdlib
 
-## Setup
+## Usage
 
 ### For hosts
 
-1. Navigate to the project directory:
+1.  Navigate to the project directory:
+
     ```sh
     cd /home/niyaz/Desktop/UARTSocket
     ```
 
-2. Install the required Python libraries:
+2.  Install the required Python libraries:
+
     ```sh
     pip install -r requirements.txt
     ```
 
-3. Add the self-signed SSL certificate `localhost.pem` to the list of trusted certificates (depends on OS). For Linux, run the below:
+3.  Run the server locally. This binds the server to `0.0.0.0`, so the host will listen for all incoming connections on port `8765`. The IP address and port can be configured in `src/configs.py`.
+
     ```sh
-    sudo cp src/localhost.pem /usr/local/share/ca-certificates/localhost.crt
-    sudo update-ca-certificates
+    python ./src/server.py
     ```
 
-4. Generate keys for use in WSS protocol with the below command, which stores the keys in `./src/keys`. Replace `<your-ip>` with your IP address:
+4.  To enable encrypted communication via SSL/TLS, a certificate from a trusted third party is required, which typically involves owning a domain and using a reverse proxy such as Nginx or HAProxy. Alternatively, you can use ngrok to obtain a temporary domain (with a valid certificate) that accesses the host via an SSH tunnel. [Install ngrok](https://ngrok.com/docs/getting-started/) and then run the following:
+
     ```sh
-    mkdir -p ./src/keys
-    openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout ./src/keys/key.pem -out ./src/keys/cert.pem -subj "/CN=localhost" -addext "subjectAltName=IP:127.0.0.1, IP:<your-ip>"
+    ngrok http <server_port> # Server port is specified in /src/config.py, 8765 by default
+
+    # Example output
+    # Forwarding https://1256-202-51-247-22.ngrok-free.app -> https://localhost:8765
     ```
 
 ### For clients
 
-Store the `cert.pem` file given by the host in src/keys/ (NOTE: This is inconvenient and there should be a method to fix it) 
+1. Install the required libraries:
 
-## Usage
+   ```sh
+   pip install -r requirements.txt
+   ```
 
-### Starting the WebSocket Server
+2. To connect from any machine to a serial port on the host, note the ngrok public domain (e.g., 1256-202-51-247-22.ngrok-free.app, without the https:// URI scheme) and run the following command:
 
-Run the below command, follow the instructions to :
-```sh
-python src/server.py -h
-```
+   ```sh
+   python src/client.py -h # Displays help for using the client
 
-### Connecting as a Client
+   # Connect to the host's /dev/ttyUSB serial port via the ngrok proxy, with a baud rate of 4800
+   python src/client.py 1256-202-51-247-22.ngrok-free.app /dev/ttyUSB0 -b 4800
+   ```
 
-1. Run the below command:
-    ```sh
-    python src/client.py -h
-    ```
+3. When connecting to localhost (for testing purposes), note that there is no self-signed SSL certificate available, so SSL must be disabled. The same applies when connecting within the same network usign private IPs.
+   ```sh
+    # -d flag disables SSL
+    python src/client.py localhost:8765 /dev/ttyUSB0 -d
+   ```
 
-2. Read its output to connect to the correct device and serial port. For example:
-    ```sh
-    # Connect to IP 20.17.138.90, read serial device /tty/USB0 at baud of 2 Mb/s
-    python src/client.py 20.17.138.90 /tty/USB0 -b 2000000 
-    ```
+**NOTE**: If serial communication programs like minicom are listening to the serial device on the host, clients will be unable to intercept the UART data.
 
-**NOTE**: If serial communication programs like minicom are listening to the serial device on the host, clients will be unable to intercept the UART data. 
+### Configuration
 
-## Configuration
-
-The WebSocket server configuration is stored in `src/config.py`, port and host IP can be changed accordingly.
+The WebSocket server configuration is stored in `src/config.py`. The port and host IP can be modified as needed.

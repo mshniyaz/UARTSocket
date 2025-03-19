@@ -12,6 +12,7 @@ else:  # Unix-based (Linux, macOS)
     import termios
 
 # Encrypt all communications via WSS (only on localhost)
+# Note that the below is only for testing purposes, deployment should be behind a reverse proxy like nginx/ngrok
 # import ssl
 # import pathlib
 # sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -19,15 +20,17 @@ else:  # Unix-based (Linux, macOS)
 # sslContext.load_verify_locations(localhostPem)
 
 
-async def clientConnect(ipAddressPort: str, serialPort: str, baudRate: int):
+async def clientConnect(ipAddressPort: str, serialPort: str, baudRate: int, sslDisable:bool):
     """
     Entrypoint for clients, connect to the host to send/receive UART data.
     """
     # Connect to the WebSocket server given
-    hostURI = f"wss://{ipAddressPort}?uartPort={serialPort}&baudrate={baudRate}"
+    protocol = "ws" if sslDisable else "wss" 
+    hostURI = f"{protocol}://{ipAddressPort}?uartPort={serialPort}&baudrate={baudRate}"
     try:
+        print(f"Attempting to connect to {hostURI}")
         websocket = await websockets.connect(hostURI)
-        print(f"Connected to {hostURI}. Type to send data, Ctrl+C to exit.")
+        print(f"Connection success. Type to send data, Ctrl+C to exit.")
 
         async def readFromServer():
             async for data in websocket:
@@ -74,9 +77,10 @@ async def clientConnect(ipAddressPort: str, serialPort: str, baudRate: int):
     ) as e:
         print(f"Failed to connect to {hostURI}")
         print(f"Unexpected {type(e).__name__}: {e}\r")
+    except ConnectionResetError:
+        print("Server closed connection, possible SSL issues")
     # Closing the websocket normally
     except websockets.exceptions.ConnectionClosedOK:
-        print("Received websocket closed ")
         await websocket.close()
         sys.exit("Websocket connection closed")
     # Other errors
@@ -105,7 +109,7 @@ if __name__ == "__main__":
         "serial_port",
         help="Path to the serial port on the host (e.g., /dev/ttyUSB0 or COM3)",
     )
-    # Optional baud rate argument with short and long options
+    # Optional arguments
     parser.add_argument(
         "-b",
         "--baud",
@@ -113,7 +117,13 @@ if __name__ == "__main__":
         default=115200,
         help="Baud rate for the serial connection (default: 115200)",
     )
+    parser.add_argument(
+        "-d",
+        "--disable_ssl",
+        action='store_true',
+        help="Flag specifying if SSL encryption should be disabled. Should only be used for testing on localhost"
+    )
     args = parser.parse_args()
 
     # Begin connecting the client
-    asyncio.run(clientConnect(args.ip_address_port, args.serial_port, args.baud))
+    asyncio.run(clientConnect(args.ip_address_port, args.serial_port, args.baud, args.disable_ssl))
