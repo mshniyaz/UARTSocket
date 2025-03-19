@@ -26,10 +26,10 @@ This project provides a method to pipe UART data over the web using WebSockets. 
     pip install -r requirements.txt
     ```
 
-3. Find the current IP address:
+3. Add the self-signed SSL certificate `localhost.pem` to the list of trusted certificates (depends on OS). For Linux, run the below:
     ```sh
-    hostname -I # UNIX based systems
-    ipconfig # For Windows, check output for IPv4 address
+    sudo cp src/localhost.pem /usr/local/share/ca-certificates/localhost.crt
+    sudo update-ca-certificates
     ```
 
 4. Generate keys for use in WSS protocol with the below command, which stores the keys in `./src/keys`. Replace `<your-ip>` with your IP address:
@@ -37,8 +37,6 @@ This project provides a method to pipe UART data over the web using WebSockets. 
     mkdir -p ./src/keys
     openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout ./src/keys/key.pem -out ./src/keys/cert.pem -subj "/CN=localhost" -addext "subjectAltName=IP:127.0.0.1, IP:<your-ip>"
     ```
-
-5. Share the public key `cert.pem` with clients 
 
 ### For clients
 
