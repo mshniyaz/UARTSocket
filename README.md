@@ -59,14 +59,34 @@ This project provides a method to transmit UART data over the web using WebSocke
    python src/client.py 1256-202-51-247-22.ngrok-free.app /dev/ttyUSB0 -b 4800
    ```
 
-3. When connecting to localhost (for testing purposes), note that there is no self-signed SSL certificate available, so SSL must be disabled. The same applies when connecting within the same network usign private IPs.
+3. When connecting to localhost (for testing purposes), note that there is no self-signed SSL certificate available, so SSL must be disabled.
    ```sh
-    # -d flag disables SSL
+    # -d flag disables SSL, ensure port is specified
     python src/client.py localhost:8765 /dev/ttyUSB0 -d
    ```
+
+4. Note that SSL must be disabled 
 
 **NOTE**: If serial communication programs like minicom are listening to the serial device on the host, clients will be unable to intercept the UART data.
 
 ### Configuration
 
 The WebSocket server configuration is stored in `src/config.py`. The port and host IP can be modified as needed.
+
+## Testing
+
+If you want to test this program but do not have access to a physical serial device, you can use the `dummy-serial.sh` script to create a dummy serial port. This script generates UART data by transmitting the elapsed time since the program started, every second. Note that `socat` is required to run the script.
+
+The script has been tested on macOS and Linux.
+
+```sh
+# Run the dummy serial script to create a pseudo-terminal (e.g., /dev/pty/2)
+./dummy-serial.sh
+
+# Start the WebSocket server
+python src/server.py
+
+# In another terminal, connect the client to the dummy serial port
+python src/client.py localhost:<server-port> <serial-port> -b <baud-rate> -d
+```
+Replace `<server-port>` with the WebSocket server port (default is 8765), `<serial-port>` with the path to the dummy serial port (e.g., `/dev/pty/2`), and `<baud-rate>` with the desired baud rate.
